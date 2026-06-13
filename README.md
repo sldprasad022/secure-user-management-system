@@ -1,8 +1,10 @@
-Enterprise-grade User Management System built with Spring Boot, Spring Security, JWT, MySQL, Email OTP Verification, Forgot Password, Role-Based Access Control, Swagger Documentation, and Admin Dashboard APIs.
+A production-ready User Management System built using Spring Boot, Spring Security, JWT Authentication, MySQL, and Swagger.
+The application provides secure user registration, email verification using OTP, authentication, role-based access control (RBAC) and password management.
 
-Features
+#Features
 
-Authentication & Authorization
+#Authentication & Authorization
+
 ✅ User Registration
 ✅ Email OTP Verification
 ✅ OTP Resend Functionality
@@ -10,7 +12,8 @@ Authentication & Authorization
 ✅ JWT Token Authentication
 ✅ Role-Based Access Control (RBAC)
 
-Password Management
+#Password Management
+
 ✅ Change Password
 ✅ Forgot Password OTP
 ✅ Resend Forgot Password OTP
@@ -18,12 +21,14 @@ Password Management
 ✅ BCrypt Password Encryption
 ✅ Password Reuse Prevention
 
-User Module
+#User Module
+
 ✅ View Profile
 ✅ Update Profile
 ✅ Change Password
 
-Admin Module
+#Admin Module
+
 ✅ View All Users
 ✅ Search Users
 ✅ Pagination Support
@@ -32,7 +37,8 @@ Admin Module
 ✅ Deactivate User
 ✅ Users Statistics
 
-Security Features
+#Security Features
+
 ✅ Spring Security
 ✅ JWT Authentication
 ✅ BCrypt Password Hashing
@@ -43,12 +49,13 @@ Security Features
 ✅ Scheduled Cleanup of Unverified Accounts
 
 
-API Documentation
+#API Documentation
+
 ✅ Swagger UI
 
+#Tech Stack
 
-Tech Stack
-✅Java
+✅Java 8,17
 ✅Spring Boot
 ✅Spring Security
 ✅Spring Data JPA
@@ -58,7 +65,7 @@ Tech Stack
 ✅Maven
 
 
-Authentication APIs
+Authentication APIs:
 - POST /api/v1/auth/register/send-otp: Send OTP for registration verification
 - POST /api/v1/auth/register/verify-otp: Verify email OTP
 - POST /api/v1/auth/register: Complete user registration
@@ -67,13 +74,13 @@ Authentication APIs
 - POST /api/v1/auth/forgot-password/resend-otp: Resend OTP for password reset
 - POST /api/v1/auth/forgot-password/reset: Reset password using OTP
 
-User APIs
+User APIs:
 - GET /api/v1/user/profile: Fetch the logged-in user’s profile details (requires authentication)
 - PUT /api/v1/user/profile: Update the logged-in user’s profile (requires authentication)
 - POST /api/v1/user/change-password: Change password for the logged-in user (requires authentication)
 
 
-Admin APIs
+Admin APIs :
 - GET /api/v1/admin/paginated-users: Get paginated user list (Admin role)
 - DELETE /api/v1/admin/delete-user/{userId}: Delete user by ID (Admin role)
 - GET /api/v1/admin/users/statistics: Get user stats (total, active, inactive)
@@ -82,6 +89,11 @@ Admin APIs
 - GET /api/v1/admin/users/active: Get active users with pagination
 - GET /api/v1/admin/users/inactive: Get inactive users with pagination
 
-Scheduler
+Scheduler:
 - Automated cleanup of unverified accounts (removes users who didn't verify their email in 24 hours)
+
+##Swagger URL :
+http://localhost:8080/swagger-ui/index.html
+
+
 
