@@ -95,5 +95,8 @@ Scheduler:
 ##Swagger URL :
 http://localhost:8080/swagger-ui/index.html
 
+## 📘 Swagger API Documentation
+![Swagger UI](swagger-ui.png)
+
 
 
