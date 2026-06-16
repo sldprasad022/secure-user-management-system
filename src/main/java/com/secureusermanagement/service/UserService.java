@@ -15,6 +15,8 @@ import com.secureusermanagement.dto.UserSummaryCountDto;
 import com.secureusermanagement.dto.UserUpdateRequestDto;
 import com.secureusermanagement.dto.VerifyEmailOtpDto;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 
 public interface UserService 
 {
@@ -31,7 +33,7 @@ public interface UserService
 	void updateMyProfile(UserUpdateRequestDto userUpdateRequestDto);
 	
 	//-----------------------------------------------------
-	LoginResponseDto login(LoginRequestDto loginRequestDto);
+	LoginResponseDto login(LoginRequestDto loginRequestDto,HttpServletRequest request);
 	
 	void forgotPasswordSendOTP(ForgotPasswordOtpRequestDto forgotPasswordOtpRequestDto);
 	

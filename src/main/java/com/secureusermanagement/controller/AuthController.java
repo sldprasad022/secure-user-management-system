@@ -23,6 +23,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
 @Tag(name = "Authentication Module",description = "APIs for user registration, email verification, OTP management, authentication, account recovery, and password reset operations")
@@ -87,18 +88,18 @@ public class AuthController
 		return ResponseEntity.status(HttpStatus.CREATED).body(APIResponse.success(HttpStatus.CREATED.value(), "User registered successfully", null));
 	}
 	
-	@Operation(summary = "Authenticate user",description = "Authenticates the user using email/mobile number and password, then returns a JWT access token.")
+	@Operation(summary = "User login", description = "Authenticate user by email or mobile number along with password")
 	@ApiResponses({
 		    @ApiResponse(responseCode = "200", description = "Login successful"),
 		    @ApiResponse(responseCode = "401", description = "Invalid credentials"),
 		    @ApiResponse(responseCode = "403", description = "Account is inactive")
 	})
 	@PostMapping("/login")
-	public ResponseEntity<APIResponse<LoginResponseDto>> loginUser(@Valid @RequestBody LoginRequestDto loginRequestDto)
-	{
-		LoginResponseDto result = userService.login(loginRequestDto);
-		return ResponseEntity.ok(APIResponse.success(201, "Login successfull", result));
-	}
+    public ResponseEntity<APIResponse<LoginResponseDto>> loginUser(@Valid @RequestBody LoginRequestDto loginRequestDto, HttpServletRequest request)
+	{	
+        LoginResponseDto result = userService.login(loginRequestDto, request);
+        return ResponseEntity.ok(APIResponse.success(201, "Login successful", result));
+    }
 	
 	@Operation(summary = "Send forgot password OTP",description = "Sends a one-time password (OTP) to the registered email address for password reset verification.")
 	@ApiResponses(value = {

@@ -18,18 +18,18 @@ import com.secureusermanagement.repository.UserRepository;
 public class CustomUserDetailsService implements UserDetailsService 
 {
 
-    @Autowired
-    private UserRepository UserRepository;
+	@Autowired
+    private UserRepository userRepository;
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException 
     {
-    	User user = UserRepository.findByEmail(email).orElseThrow(() -> new UsernameNotFoundException("User not found: " + email));
+        User user = userRepository.findByEmailOrMobileNumber(email, email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + email));
 
-        //  Convert role to GrantedAuthority
+        // Convert role to GrantedAuthority
         List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(user.getRole().name()));
 
         return new org.springframework.security.core.userdetails.User(email,user.getPassword(),authorities);
     }
-
 }

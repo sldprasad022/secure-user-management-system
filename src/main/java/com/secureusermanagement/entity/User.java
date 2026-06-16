@@ -82,4 +82,13 @@ public class User {
     @Column(name = "is_active", nullable = false)
     private boolean isActive = false;
     
+    @Column(name = "failed_login_attempts", nullable = false)
+    private Integer failedLoginAttempts = 0;
+
+    @Column(name = "account_locked", nullable = false)
+    private boolean accountLocked = false;
+
+    @Column(name = "account_locked_until")
+    private LocalDateTime accountLockedUntil;
+    
 }

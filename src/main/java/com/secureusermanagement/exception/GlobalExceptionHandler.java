@@ -165,5 +165,11 @@ public class GlobalExceptionHandler
 	{
 	    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(APIResponse.failure(HttpStatus.BAD_REQUEST.value(), ex.getMessage()));                   
 	}
+	
+	@ExceptionHandler(AccountLockedException.class)
+    public ResponseEntity<APIResponse<Object>> handleAccountLockedException(AccountLockedException ex) 
+	{
+        return ResponseEntity.status(HttpStatus.LOCKED).body(APIResponse.failure(HttpStatus.LOCKED.value(), ex.getMessage()));
+    }
 }
 

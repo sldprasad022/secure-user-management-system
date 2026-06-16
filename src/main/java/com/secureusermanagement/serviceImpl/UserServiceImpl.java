@@ -27,6 +27,7 @@ import com.secureusermanagement.dto.UserUpdateRequestDto;
 import com.secureusermanagement.dto.VerifyEmailOtpDto;
 import com.secureusermanagement.entity.User;
 import com.secureusermanagement.enums.Role;
+import com.secureusermanagement.exception.AccountLockedException;
 import com.secureusermanagement.exception.EmailAlreadyExistsException;
 import com.secureusermanagement.exception.EmailNotVerifiedException;
 import com.secureusermanagement.exception.InvalidCredentialsException;
@@ -46,6 +47,8 @@ import com.secureusermanagement.service.EmailService;
 import com.secureusermanagement.service.UserService;
 import com.secureusermanagement.utils.JwtUtils;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 @Service
 public class UserServiceImpl implements UserService
 {
@@ -56,6 +59,9 @@ public class UserServiceImpl implements UserService
 	private EmailService emailService;
 	
 	@Autowired
+    private LoginAuditService loginAuditService;
+	
+	@Autowired
 	private PasswordEncoder passwordEncoder;
 	
 	@Autowired
@@ -64,6 +70,10 @@ public class UserServiceImpl implements UserService
 	private static final int OTP_VALIDITY_MINUTES = 2;
 	
 	private static final int OTP_RESEND_INTERVAL_SECONDS = 60;
+	
+	private static final int MAX_FAILED_ATTEMPTS = 5;
+	
+    private static final int LOCK_TIME_MINUTES = 2;
 
 
 	public static String generateOTP() 
@@ -209,26 +219,62 @@ public class UserServiceImpl implements UserService
 	}
 	
 	@Override
-	public LoginResponseDto login(LoginRequestDto loginRequestDto)
-	{
-		User user = userRepository.findByEmailOrMobileNumber(loginRequestDto.getEmailOrMobileNumber(),
-															loginRequestDto.getEmailOrMobileNumber())
-				                                            .orElseThrow(() -> new InvalidCredentialsException("Invalid email/mobile number or password"));
-		
-		if (!user.isActive()) 
-	    {
-	        throw new UserAccountDeactivatedException("Your account has been deactivated. Please contact admin.");      
-	    }
-		if (!passwordEncoder.matches(loginRequestDto.getPassword(),user.getPassword())) {
+    public LoginResponseDto login(LoginRequestDto loginRequestDto, HttpServletRequest request) 
+	{	
+        User user = userRepository.findByEmailOrMobileNumber(loginRequestDto.getEmailOrMobileNumber(),
+                											 loginRequestDto.getEmailOrMobileNumber())
+                						.orElseThrow(() -> new InvalidCredentialsException("Invalid email/mobile number or password"));
 
-		    throw new InvalidCredentialsException("Invalid email/mobile number or password");
-		}
+        String ipAddress = request.getRemoteAddr();
+        String userAgent = request.getHeader("User-Agent");
 
-		String token = jwtUtils.generateToken(user.getEmail(), user.getRole().name());
-		UserResponseDto userResponseDto = UserResponseDto.fromEntity(user);
-		
-		return new LoginResponseDto(token, userResponseDto);
-	}
+        if (user.isAccountLocked()) 
+        {
+            if (user.getAccountLockedUntil() != null && user.getAccountLockedUntil().isAfter(LocalDateTime.now())) 
+            {
+                 // Log failed attempt
+                loginAuditService.logLogin(user.getEmail(), ipAddress, userAgent, "FAILED", "Account locked");
+                throw new AccountLockedException("Account locked. Try again after " + user.getAccountLockedUntil());
+            } 
+            else 
+            {
+                // Unlock account automatically
+                user.setAccountLocked(false);
+                user.setFailedLoginAttempts(0);
+                System.err.println("**1**");
+                user.setAccountLockedUntil(null);
+                userRepository.save(user);
+            }
+        }
+        if (!passwordEncoder.matches(loginRequestDto.getPassword(), user.getPassword())) 
+        {
+        	int attempts = user.getFailedLoginAttempts() + 1;
+            user.setFailedLoginAttempts(attempts);
+            if (attempts >= MAX_FAILED_ATTEMPTS) 
+            {	
+                user.setAccountLocked(true);
+                user.setAccountLockedUntil(LocalDateTime.now().plusMinutes(LOCK_TIME_MINUTES));
+            }
+            userRepository.save(user);
+            // Log failed attempt
+            loginAuditService.logLogin(user.getEmail(), ipAddress, userAgent, "FAILED", "Invalid password");
+
+            throw new InvalidCredentialsException("Invalid email/mobile number or password");
+        }
+        // Reset attempts and update login
+        user.setFailedLoginAttempts(0);
+        user.setAccountLocked(false);
+        user.setAccountLockedUntil(null);
+        user.setLastLogin(LocalDateTime.now());
+        userRepository.save(user);
+
+        // Log successful login
+        loginAuditService.logLogin(user.getEmail(), ipAddress, userAgent, "SUCCESS", null);
+
+        String token = jwtUtils.generateToken(user.getEmail(), user.getRole().name());
+        UserResponseDto userResponseDto = UserResponseDto.fromEntity(user);
+        return new LoginResponseDto(token, userResponseDto);
+    }
 	
 	@Override
 	public void forgotPasswordSendOTP(ForgotPasswordOtpRequestDto forgotPasswordOtpRequestDto)
