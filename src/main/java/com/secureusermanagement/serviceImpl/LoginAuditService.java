@@ -6,16 +6,25 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.secureusermanagement.entity.LoginAuditLog;
+import com.secureusermanagement.enums.LoginStatus;
 import com.secureusermanagement.repository.LoginAuditLogRepository;
 
 @Service
-public class LoginAuditService {
-
+public class LoginAuditService
+{
     @Autowired
     private LoginAuditLogRepository loginAuditLogRepository;
 
-    public void logLogin(String email, String ipAddress, String userAgent, String status, String reason) {
+    public void logLogin(Long userId,
+                         String email,
+                         String ipAddress,
+                         String userAgent,
+                         LoginStatus status,
+                         String reason)
+    {
         LoginAuditLog log = new LoginAuditLog();
+
+        log.setUserId(userId);
         log.setEmail(email);
         log.setIpAddress(ipAddress);
         log.setUserAgent(userAgent);

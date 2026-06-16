@@ -14,22 +14,45 @@ import com.secureusermanagement.entity.User;
 import com.secureusermanagement.repository.UserRepository;
 
 
-@Service
-public class CustomUserDetailsService implements UserDetailsService 
-{
+//@Service
+//public class CustomUserDetailsService implements UserDetailsService
+//{
+//    @Autowired
+//    private UserRepository userRepository;
+//
+//    @Override
+//    public UserDetails loadUserByUsername(String email)throws UsernameNotFoundException
+//    {
+//        User user = userRepository.findByEmail(email).orElseThrow(() ->new UsernameNotFoundException("User not found"));
+//
+//        List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(user.getRole().name()));
+//
+//        return new CustomUserPrincipal(user.getUserId(),user.getEmail(),user.getPassword(),authorities);
+//    }
+//}
 
-	@Autowired
+@Service
+public class CustomUserDetailsService implements UserDetailsService
+{
+    @Autowired
     private UserRepository userRepository;
 
     @Override
-    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException 
+    public UserDetails loadUserByUsername(String email)throws UsernameNotFoundException
     {
-        User user = userRepository.findByEmailOrMobileNumber(email, email)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + email));
+        User user = userRepository.findByEmail(email).orElseThrow(() ->new UsernameNotFoundException("User not found"));
+        return buildPrincipal(user);
+    }
 
-        // Convert role to GrantedAuthority
+    public UserDetails loadUserById(Long userId)
+    {
+        User user = userRepository.findById(userId).orElseThrow(() ->new UsernameNotFoundException("User not found"));
+        return buildPrincipal(user);
+    }
+
+    private UserDetails buildPrincipal(User user)
+    {
         List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(user.getRole().name()));
-
-        return new org.springframework.security.core.userdetails.User(email,user.getPassword(),authorities);
+        return new CustomUserPrincipal(user.getUserId(),user.getEmail(),user.getPassword(),authorities);
     }
 }

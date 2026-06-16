@@ -4,7 +4,9 @@ package com.secureusermanagement.utils;
 import java.io.IOException;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -20,13 +22,11 @@ import jakarta.servlet.http.HttpServletResponse;
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter 
 {
-
     @Autowired
     private JwtUtils jwtUtils;
 
     @Autowired
     private CustomUserDetailsService userDetailsService;
-
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)throws ServletException, IOException
@@ -37,17 +37,19 @@ public class JwtAuthFilter extends OncePerRequestFilter
         if (authHeader != null && authHeader.startsWith("Bearer "))
         {
             String token = authHeader.substring(7);
-
             try 
             {
+            	Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
                 // Validate the token
-                if (jwtUtils.isTokenValid(token))
+                if (jwtUtils.isTokenValid(token)&& authentication == null)
                 {
-                    String email = jwtUtils.extractSubject(token);
-                    UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+//                    String email = jwtUtils.extractSubject(token);
+//                    UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+                	
+                	Long userId = jwtUtils.extractUserId(token);
+                	UserDetails userDetails = userDetailsService.loadUserById(userId);
 
-                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                            userDetails, null, userDetails.getAuthorities());
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
 
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
@@ -56,17 +58,17 @@ public class JwtAuthFilter extends OncePerRequestFilter
             //If the token expires or token is black listed(Log out)
             catch (io.jsonwebtoken.ExpiredJwtException ex)
             {
-                sendErrorResponse(response, 401, "Token is expired");
+                sendErrorResponse(response, HttpStatus.UNAUTHORIZED.value(), "Token is expired");
                 return;
             } 
             catch (ResponseStatusException ex) 
             {
-                sendErrorResponse(response, 401, ex.getReason());
+                sendErrorResponse(response, HttpStatus.UNAUTHORIZED.value(), ex.getReason());
                 return;
             } 
             catch (Exception ex) 
             {
-                sendErrorResponse(response, 401, "Invalid token");
+                sendErrorResponse(response, HttpStatus.UNAUTHORIZED.value(), "Invalid token");
                 return;
             }
         }
@@ -75,8 +77,8 @@ public class JwtAuthFilter extends OncePerRequestFilter
     }
 
     
-    /**
-     * 🔧 Helper method to send consistent JSON error responses
+    /*
+     *  Helper method to send consistent JSON error responses
      */
     private void sendErrorResponse(HttpServletResponse response, int statusCode, String message) throws IOException 
     {
@@ -84,10 +86,7 @@ public class JwtAuthFilter extends OncePerRequestFilter
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
 
-        String jsonResponse = String.format(
-                "{\"success\": false, \"statusCode\": %d, \"message\": \"%s\"}",
-                statusCode, message
-        );
+        String jsonResponse = String.format("{\"success\": false, \"statusCode\": %d, \"message\": \"%s\"}",statusCode, message);
 
         response.getWriter().write(jsonResponse);
     }

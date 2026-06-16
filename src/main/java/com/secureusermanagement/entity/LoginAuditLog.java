@@ -2,7 +2,11 @@ package com.secureusermanagement.entity;
 
 import java.time.LocalDateTime;
 
+import com.secureusermanagement.enums.LoginStatus;
+
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -16,16 +20,24 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class LoginAuditLog {
-
+public class LoginAuditLog
+{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    private Long userId;
+
     private String email;
+
     private String ipAddress;
+
     private String userAgent;
-    private String loginStatus; // SUCCESS or FAILED
-    private String failureReason; // For failed attempts
+
+    @Enumerated(EnumType.STRING)
+    private LoginStatus loginStatus;
+
+    private String failureReason;
+
     private LocalDateTime loginTime;
 }

@@ -68,8 +68,7 @@ public class AuthController
 		    @ApiResponse(responseCode = "404", description = "User not found")
 	})
 	@PostMapping("/register/resend-otp")
-	public ResponseEntity<APIResponse<Void>>
-	resendRegistrationOtp(@Valid @RequestBody ResendOtpRequestDto requestDto)
+	public ResponseEntity<APIResponse<Void>>resendRegistrationOtp(@Valid @RequestBody ResendOtpRequestDto requestDto)
 	{
 	    userService.resendRegistrationOtp(requestDto);
 	    return ResponseEntity.ok(APIResponse.success(HttpStatus.OK.value(),"OTP resent successfully",null));

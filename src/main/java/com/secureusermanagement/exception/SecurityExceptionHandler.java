@@ -25,7 +25,7 @@ public class SecurityExceptionHandler implements AuthenticationEntryPoint, Acces
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException)throws IOException
     {
-        APIResponse<Object> apiResponse = APIResponse.failure(HttpStatus.UNAUTHORIZED.value(), "Access denied. Please log in.");
+        APIResponse<Object> apiResponse = APIResponse.failure(HttpStatus.UNAUTHORIZED.value(), "Authentication required.Please log in to access this resource.");
 
         response.setStatus(HttpStatus.UNAUTHORIZED.value());
         response.setContentType("application/json");
@@ -36,7 +36,7 @@ public class SecurityExceptionHandler implements AuthenticationEntryPoint, Acces
     @Override
     public void handle(HttpServletRequest request, HttpServletResponse response, AccessDeniedException accessDeniedException)throws IOException 
     {
-    	APIResponse<Object> apiResponse = APIResponse.failure(HttpStatus.FORBIDDEN.value(), "You are unauthorized to access this resource.");
+    	APIResponse<Object> apiResponse = APIResponse.failure(HttpStatus.FORBIDDEN.value(), "You do not have permission to access this resource.");
 
         response.setStatus(HttpStatus.FORBIDDEN.value());
         response.setContentType("application/json");

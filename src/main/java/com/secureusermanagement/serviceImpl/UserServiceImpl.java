@@ -9,6 +9,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -26,6 +27,7 @@ import com.secureusermanagement.dto.UserSummaryCountDto;
 import com.secureusermanagement.dto.UserUpdateRequestDto;
 import com.secureusermanagement.dto.VerifyEmailOtpDto;
 import com.secureusermanagement.entity.User;
+import com.secureusermanagement.enums.LoginStatus;
 import com.secureusermanagement.enums.Role;
 import com.secureusermanagement.exception.AccountLockedException;
 import com.secureusermanagement.exception.EmailAlreadyExistsException;
@@ -45,6 +47,7 @@ import com.secureusermanagement.exception.UserNotFoundException;
 import com.secureusermanagement.repository.UserRepository;
 import com.secureusermanagement.service.EmailService;
 import com.secureusermanagement.service.UserService;
+import com.secureusermanagement.utils.CustomUserPrincipal;
 import com.secureusermanagement.utils.JwtUtils;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -233,7 +236,7 @@ public class UserServiceImpl implements UserService
             if (user.getAccountLockedUntil() != null && user.getAccountLockedUntil().isAfter(LocalDateTime.now())) 
             {
                  // Log failed attempt
-                loginAuditService.logLogin(user.getEmail(), ipAddress, userAgent, "FAILED", "Account locked");
+                loginAuditService.logLogin(user.getUserId(),user.getEmail(), ipAddress, userAgent, LoginStatus.FAILED, "Account locked");
                 throw new AccountLockedException("Account locked. Try again after " + user.getAccountLockedUntil());
             } 
             else 
@@ -243,6 +246,7 @@ public class UserServiceImpl implements UserService
                 user.setFailedLoginAttempts(0);
                 System.err.println("**1**");
                 user.setAccountLockedUntil(null);
+                
                 userRepository.save(user);
             }
         }
@@ -257,21 +261,23 @@ public class UserServiceImpl implements UserService
             }
             userRepository.save(user);
             // Log failed attempt
-            loginAuditService.logLogin(user.getEmail(), ipAddress, userAgent, "FAILED", "Invalid password");
+            loginAuditService.logLogin(user.getUserId(),user.getEmail(), ipAddress, userAgent, LoginStatus.FAILED, "Invalid password");
 
             throw new InvalidCredentialsException("Invalid email/mobile number or password");
         }
         // Reset attempts and update login
         user.setFailedLoginAttempts(0);
+        System.err.println("****2****");
         user.setAccountLocked(false);
         user.setAccountLockedUntil(null);
         user.setLastLogin(LocalDateTime.now());
+        
         userRepository.save(user);
 
         // Log successful login
-        loginAuditService.logLogin(user.getEmail(), ipAddress, userAgent, "SUCCESS", null);
+        loginAuditService.logLogin(user.getUserId(), user.getEmail(), ipAddress, userAgent, LoginStatus.SUCCESS, null);
 
-        String token = jwtUtils.generateToken(user.getEmail(), user.getRole().name());
+        String token = jwtUtils.generateToken(user.getUserId(),user.getEmail(), user.getRole().name());
         UserResponseDto userResponseDto = UserResponseDto.fromEntity(user);
         return new LoginResponseDto(token, userResponseDto);
     }
@@ -348,30 +354,33 @@ public class UserServiceImpl implements UserService
 	@Override
 	public UserResponseDto getMyProfile()
 	{
-	    String email = SecurityContextHolder.getContext().getAuthentication().getName();
-	    User user = userRepository.findByEmail(email).orElseThrow(() ->new UserNotFoundException("User not found"));
+		User user = getCurrentUser();
+		System.err.println("***** User Id ***** "+user.getUserId());
 	    return UserResponseDto.fromEntity(user);
 	}
 
 	@Override
 	public void updateMyProfile(UserUpdateRequestDto userUpdateRequestDto)
 	{
-	    String email = SecurityContextHolder.getContext().getAuthentication().getName();
-	            
-	    User user = userRepository.findByEmail(email).orElseThrow(() ->new UserNotFoundException("User not found"));        
-	    user.setUserName(userUpdateRequestDto.getUserName());
-	    user.setMobileNumber(userUpdateRequestDto.getMobileNumber());
+		User user = getCurrentUser(); 
+		System.err.println("***** User Id ***** "+user.getUserId());
+	    if (userUpdateRequestDto.getUserName()!=null) 
+	    {
+	    	user.setUserName(userUpdateRequestDto.getUserName());
+		}
+	    if (userUpdateRequestDto.getMobileNumber()!=null)
+	    {
+	    	user.setMobileNumber(userUpdateRequestDto.getMobileNumber());
+		}
 	    user.setUpdatedAt(LocalDateTime.now());
-
+	    
 	    userRepository.save(user);
 	}
 	
 	@Override
 	public void changePassword(ChangePasswordRequestDto changePasswordRequestDto)
 	{
-		String email = SecurityContextHolder.getContext().getAuthentication().getName();
-
-		User user = userRepository.findByEmail(email).orElseThrow(() ->new UserNotFoundException("User not found"));
+		User user = getCurrentUser();
 
 	    if (!passwordEncoder.matches(changePasswordRequestDto.getCurrentPassword(),user.getPassword()))
 	    {
@@ -455,5 +464,12 @@ public class UserServiceImpl implements UserService
 		Pageable pageable = PageRequest.of(page, size, Sort.by("userId").descending());
 		Page<User> result = userRepository.findByIsActive(false, pageable);
 		return UserResponseDto.fromEntityPage(result);
+	}
+	
+	private User getCurrentUser()
+	{
+	    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+	    CustomUserPrincipal principal = (CustomUserPrincipal)authentication.getPrincipal();
+	    return userRepository.findById(principal.getUserId()).orElseThrow(() ->new UserNotFoundException("User not found"));
 	}
 }
